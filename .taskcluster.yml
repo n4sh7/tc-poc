@@ -1,10 +1,27 @@
 version: 1
 policy:
   pullRequests: public_restricted
-tasks: []
-# Goes on the DEFAULT branch (main) of sys0xFF/tc-poc.
-# getRepoPolicy reads policy.pullRequests from the RAW default-branch YAML
-# (no json-e rendering), so this is all that's needed to make the repo
-# public_restricted. `tasks: []` keeps the default branch clean: a push of
-# this file does not try to create any task (no extra InsufficientScopes
-# commit comment).
+tasks:
+  - $if: 'tasks_for == "github-pull-request-untrusted"'
+    then:
+      taskId: {$eval: 'as_slugid("control")'}
+      created: {$fromNow: ''}
+      deadline: {$fromNow: '1 hour'}
+      provisionerId: proj-getting-started
+      workerType: tutorial
+      payload:
+        maxRunTime: 600
+        image: ubuntu:latest
+        command: ['/bin/bash', '-c', 'echo control']
+      metadata:
+        name: "v1 control PR task"
+        description: "Same untrusted fork PR, but a v1 head: VersionOne.createScopes honors tasks_for"
+        owner: "axonogenesis@proton.me"
+        source: "https://github.com/sys0xFF/tc-poc"
+# Goes on a SECOND attacker fork branch (n4sh7/tc-poc:control) as .taskcluster.yml.
+# This is the CONTRAST: identical untrusted non-collaborator PR, identical repo
+# and public_restricted policy, only the head config version differs.
+# VersionOne.createScopes maps tasks_for=github-pull-request-untrusted to
+# assume:repo:github.com/sys0xFF/tc-poc:pull-request-UNTRUSTED (the CORRECT role).
+# The v1 path uses battle-tested json-e, so it reliably reaches createTask and
+# its comment confirms the pipeline works end-to-end on the unregistered repo.
