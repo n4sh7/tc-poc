@@ -1,0 +1,10 @@
+version: 1
+policy:
+  pullRequests: public_restricted
+tasks: []
+# Goes on the DEFAULT branch (main) of sys0xFF/tc-poc.
+# getRepoPolicy reads policy.pullRequests from the RAW default-branch YAML
+# (no json-e rendering), so this is all that's needed to make the repo
+# public_restricted. `tasks: []` keeps the default branch clean: a push of
+# this file does not try to create any task (no extra InsufficientScopes
+# commit comment).
